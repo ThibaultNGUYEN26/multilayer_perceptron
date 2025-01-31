@@ -40,6 +40,13 @@ def initialisation(dimensions):
     return parameters
 
 
+def softmax(Z):
+
+    expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))
+
+    return expZ / np.sum(expZ, axis=0, keepdims=True)
+
+
 def forward_propagation(X, parameters):
 
     activations = {'A0': X}
@@ -51,15 +58,31 @@ def forward_propagation(X, parameters):
         Z = parameters['W' + str(c)].dot(activations['A' + str(c - 1)]) + parameters['b' + str(c)]
         activations['A' + str(c)] = 1 / (1 + np.exp(-Z))
 
+    # Final layer uses softmax
+    Z_final = parameters['W' + str(C)].dot(activations['A' + str(C - 1)]) + parameters['b' + str(C)]
+    A_final = softmax(Z_final)
+    activations['A' + str(C)] = A_final
+
     return activations
 
 
-def back_propagation(y, parameters, activations):
+def one_hot_encoding(y, num_classes=2):
 
-  m = y.shape[1]
+    # Flatten y so it becomes shape (m,)
+    y_flat = y.flatten().astype(int)
+    # Create an identity matrix of size num_classes,
+    # and index into it with y_flat
+    y_oh = np.eye(num_classes)[y_flat].T  # shape: (num_classes, m)
+
+    return y_oh
+
+
+def back_propagation(y_oh, parameters, activations):
+
+  m = y_oh.shape[1]
   C = len(parameters) // 2
 
-  dZ = activations['A' + str(C)] - y
+  dZ = activations['A' + str(C)] - y_oh
   gradients = {}
 
   for c in reversed(range(1, C + 1)):
@@ -76,19 +99,10 @@ def update(gradients, parameters, learning_rate):
     C = len(parameters) // 2
 
     for c in range(1, C + 1):
-        parameters['W' + str(c)] = parameters['W' + str(c)] - learning_rate * gradients['dW' + str(c)]
-        parameters['b' + str(c)] = parameters['b' + str(c)] - learning_rate * gradients['db' + str(c)]
+        parameters['W' + str(c)] -= learning_rate * gradients['dW' + str(c)]
+        parameters['b' + str(c)] -= learning_rate * gradients['db' + str(c)]
 
     return parameters
-
-
-def predict(X, parameters):
-
-    activations = forward_propagation(X, parameters)
-    C = len(parameters) // 2
-    Af = activations['A' + str(C)]
-
-    return Af >= 0.5
 
 
 def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learning_rate=0.01, n_iter=3000):
@@ -96,8 +110,11 @@ def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learni
     # initialisation parameters
     dimensions = list(hidden_layers)
     dimensions.insert(0, X.shape[0])
-    dimensions.append(y.shape[0])
+    dimensions.append(2)
     np.random.seed(1)
+
+    y_oh = one_hot_encoding(y, num_classes=2)
+    y_test_oh = one_hot_encoding(y_test, num_classes=2)
     parameters = initialisation(dimensions)
 
     training_history = np.zeros((n_iter, 2))
@@ -108,19 +125,20 @@ def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learni
     # gradient descent
     for i in range(n_iter):
         activations = forward_propagation(X, parameters)
-        gradients = back_propagation(y, parameters, activations)
+        gradients = back_propagation(y_oh, parameters, activations)
         parameters = update(gradients, parameters, learning_rate)
         Af_train = activations['A' + str(C)]
 
-        train_loss = log_loss(y.flatten(), Af_train.flatten())
-        y_pred_train = predict(X, parameters)
-        train_acc = accuracy_score(y.flatten(), y_pred_train.flatten())
+        # train_loss = log_loss(y.flatten(), Af_train.flatten())
+        train_loss = log_loss(y.flatten(), Af_train.T, labels=[0,1])
+        y_pred_train = np.argmax(Af_train, axis=0)
+        train_acc = accuracy_score(y.flatten(), y_pred_train)
 
         # Evaluate on Test Set
         activations_test = forward_propagation(X_test, parameters)
         Af_test = activations_test['A' + str(C)]
-        val_loss = log_loss(y_test.flatten(), Af_test.flatten())
-        y_pred_test = predict(X_test, parameters)
+        val_loss = log_loss(y_test.flatten(), Af_test.T, labels=[0,1])
+        y_pred_test = np.argmax(Af_test, axis=0)
         val_acc = accuracy_score(y_test.flatten(), y_pred_test.flatten())
 
         training_history[i] = [train_loss, train_acc]
