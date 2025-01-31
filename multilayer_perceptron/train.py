@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import accuracy_score, log_loss
 from tqdm import tqdm
+import networkx as nx
+import matplotlib.animation as animation
 
 # Load train and test sets
 train_data = pd.read_csv("train_data.csv")
@@ -105,7 +107,78 @@ def update(gradients, parameters, learning_rate):
     return parameters
 
 
-def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learning_rate=0.01, n_iter=3000):
+def animate_nn_training(layers, activations_per_epoch):
+    """
+    Animates the neural network during training with real activation values.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    G = nx.DiGraph()
+    pos = {}
+    max_neurons = max(layers)
+    vertical_spacing = 2
+    horizontal_spacing = 3
+
+    previous_layer_nodes = []
+    node_order = []  # Maintain neuron order for color mapping
+
+    for layer_idx, num_neurons in enumerate(layers):
+        current_layer_nodes = []
+        y_start = (max_neurons - num_neurons) * vertical_spacing / 2
+        x = layer_idx * horizontal_spacing
+
+        for neuron_idx in range(num_neurons):
+            node_id = f"L{layer_idx}_N{neuron_idx}"
+            G.add_node(node_id)
+            pos[node_id] = (x, y_start + neuron_idx * vertical_spacing)
+            current_layer_nodes.append(node_id)
+            node_order.append(node_id)
+
+            for prev_node in previous_layer_nodes:
+                G.add_edge(prev_node, node_id)
+
+        previous_layer_nodes = current_layer_nodes
+
+    def update(epoch):
+        ax.clear()
+        ax.set_title(f"Training Epoch {epoch+1}/{len(activations_per_epoch)}")
+
+        activations = activations_per_epoch[epoch]  # Get activations for this epoch
+        node_colors = []
+
+        for layer_idx, num_neurons in enumerate(layers):
+            if layer_idx < len(activations):
+                layer_activations = activations[layer_idx]
+
+                # ✅ Ensure correct shape (num_neurons, num_samples)
+                if layer_activations.shape[0] != num_neurons:
+                    print(f"Warning: Layer {layer_idx} expected {num_neurons} neurons but got {layer_activations.shape[0]}")
+                    continue  # Skip this layer if the shape is incorrect
+
+                # ✅ Take mean activation per neuron
+                layer_activations = layer_activations.mean(axis=1)
+
+                # Normalize activations (0 = blue, 1 = red)
+                if np.max(layer_activations) > np.min(layer_activations):
+                    layer_activations = (layer_activations - np.min(layer_activations)) / (np.max(layer_activations) - np.min(layer_activations) + 1e-9)
+                else:
+                    layer_activations = np.zeros_like(layer_activations)  # Keep neutral color if no variation
+
+                node_colors.extend(plt.cm.Reds(layer_activations))
+
+        # ✅ Ensure colors match the number of nodes
+        if len(node_colors) != len(node_order):
+            print(f"Warning: Mismatch {len(node_colors)} colors vs {len(node_order)} nodes")
+            while len(node_colors) < len(node_order):
+                node_colors.append(plt.cm.Reds(0))  # Add neutral colors to match
+            node_colors = node_colors[:len(node_order)]  # Trim if too many
+
+        nx.draw(G, pos, ax=ax, node_size=800, node_color=node_colors, edge_color="gray", alpha=0.6, with_labels=False)
+
+    ani = animation.FuncAnimation(fig, update, frames=len(activations_per_epoch), repeat=False)
+    plt.show()
+
+
+def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16), learning_rate=0.01, n_iter=3000):
 
     # initialisation parameters
     dimensions = list(hidden_layers)
@@ -122,11 +195,19 @@ def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learni
 
     C = len(parameters) // 2
 
+    activations_per_epoch = []
+
     # gradient descent
     for i in range(n_iter):
         activations = forward_propagation(X, parameters)
         gradients = back_propagation(y_oh, parameters, activations)
         parameters = update(gradients, parameters, learning_rate)
+
+        # Store activations properly per layer
+        epoch_activations = [activations[f"A{c}"] for c in range(len(hidden_layers) + 1)]
+
+        activations_per_epoch.append(epoch_activations)
+
         Af_train = activations['A' + str(C)]
 
         # train_loss = log_loss(y.flatten(), Af_train.flatten())
@@ -146,6 +227,9 @@ def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learni
 
         # Print formatted metrics every epoch
         print(f"epoch {i+1}/{n_iter} - loss: {train_loss:.4f} - val_loss: {val_loss:.4f}")
+
+    # Start animation after training
+    animate_nn_training(dimensions, activations_per_epoch)
 
     # Plot Learning Curves
     plt.figure(figsize=(12, 4))
@@ -184,6 +268,8 @@ def deep_neural_network(X, y, X_test, y_test, hidden_layers=(16, 16, 16), learni
 
     return parameters
 
+
 if __name__ == "__main__":
     # Train the Model
+    # trained_params = deep_neural_network(X_train, y_train, X_test, y_test)
     trained_params = deep_neural_network(X_train, y_train, X_test, y_test, hidden_layers=(16, 16, 16), learning_rate=0.1, n_iter=1000)
