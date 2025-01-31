@@ -1,0 +1,5 @@
+__pycache__/
+venv/
+trained_params.npy
+test_data.csv
+train_data.csv
