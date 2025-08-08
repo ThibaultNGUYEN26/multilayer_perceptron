@@ -1,125 +1,201 @@
 import numpy as np
 
 class Initialisation:
-    def __init__(self, W1, b1, W2, b2):
-        self.W1 = W1
-        self.b1 = b1
-        self.W2 = W2
-        self.b2 = b2
+    def __init__(self, dimensions) -> None:
+        """
+        Initialize the Initialisation class with the dimensions of the neural network.
 
-    def initialisation(self):
-        W1 = np.random.randn(self.n1, self.n0)
-        b1 = np.random.randn(self.n1, 1)
+        Args:
+            dimensions (list): List of integers representing the size of each layer.
+        """
+        self.dimensions = dimensions
 
-        W2 = np.random.randn(self.n2, self.n1)
-        b2 = np.random.randn(self.n2, 1)
+    def initialisation(self) -> dict:
+        """
+        Initializes the parameters for the neural network.
 
-        parameters = {
-            "W1": W1,
-            "b1": b1,
-            "W2": W2,
-            "b2": b2
-        }
+        Returns:
+            dict: A dictionary containing the initialized weights and biases for each layer.
+        """
+        # Initialize parameters for each layer
+        parameters = {}
+        C = len(self.dimensions)
+
+        # Randomly initialize weights and biases for each layer
+        np.random.seed(1)
+
+        # Loop through each layer to initialize weights and biases
+        for c in range(1, C):
+            parameters['W' + str(c)] = np.random.randn(self.dimensions[c], self.dimensions[c - 1])
+            parameters['b' + str(c)] = np.random.randn(self.dimensions[c], 1)
 
         return parameters
 
+
 class Model:
-    def __init__(self, X, parameters):
+    def __init__(self, X, parameters) -> None:
+        """
+        Initialize the Model class with input features and parameters.
+
+        Args:
+            X (np.ndarray): Input features for the neural network.
+            parameters (dict): Dictionary containing the weights and biases of the neural network.
+        """
         self.X = X
-        self.W1 = parameters["W1"]
-        self.b1 = parameters["b1"]
-        self.W2 = parameters["W2"]
-        self.b2 = parameters["b2"]
+        self.parameters = parameters
 
-    def forward_propagation(self):
-        Z1 = self.W1.dot(self.X) + self.b1
-        A1 = 1 / (1 + np.exp(-Z1))  # Sigmoid activation
-        Z2 = self.W2.dot(A1) + self.b2
-        A2 = 1 / (1 + np.exp(-Z2))
+    def forward_propagation(self) -> dict:
+        """
+        Performs forward propagation through the neural network.
 
-        activations = {
-            "A1": A1,
-            "A2": A2
-        }
+        Returns:
+            dict: A dictionary containing the activations for each layer.
+        """
+        # Initialize the activations dictionary
+        activations = {'A0': self.X}
+        # Number of layers in the neural network
+        C = len(self.parameters) // 2
+
+        # Loop through each layer to compute activations
+        for c in range(1, C + 1):
+            Z = self.parameters['W' + str(c)].dot(activations['A' + str(c - 1)]) + self.parameters['b' + str(c)]
+            activations['Z' + str(c)] = Z
+
+            # Apply softmax to the output layer, sigmoid to hidden layers
+            if c == C:  # Output layer
+                activations['A' + str(c)] = self._softmax(Z)
+            else:  # Hidden layers
+                activations['A' + str(c)] = 1 / (1 + np.exp(-Z))
 
         return activations
 
-class Loss:
-    def __init__(self, A, y):
-        self.A = A
-        self.y = y
+    def _softmax(self, Z):
+        """
+        Compute the softmax activation function.
 
-    def log_loss(self):
-        eps = 1e-15
-        A_clipped = np.clip(self.A, eps, 1 - eps)
-        loss = - (self.y * np.log(A_clipped) + (1 - self.y) * np.log(1 - A_clipped))
-        return np.mean(loss)
+        Args:
+            Z (np.ndarray): Linear activations of the output layer.
+
+        Returns:
+            np.ndarray: Softmax probabilities.
+        """
+        # Subtract max for numerical stability
+        Z_stable = Z - np.max(Z, axis=0, keepdims=True)
+        exp_Z = np.exp(Z_stable)
+        return exp_Z / np.sum(exp_Z, axis=0, keepdims=True)
+
 
 class Gradients:
-    def __init__(self, X, y, activations, parameters):
-        self.A1 = activations["A1"]
-        self.A2 = activations["A2"]
-        self.W2 = parameters["W2"]
-        self.X = X
+    def __init__(self, y, parameters, activations) -> None:
+        """
+        Initialize the Gradients class with true labels, parameters, and activations.
+
+        Args:
+            y (np.ndarray): True labels for the training data.
+            parameters (dict): Dictionary containing the weights and biases of the neural network.
+            activations (dict): Dictionary containing the activations from forward propagation.
+        """
         self.y = y
+        self.parameters = parameters
+        self.activations = activations
 
-    def back_propagation(self):
+    def back_propagation(self) -> dict:
+        """
+        Computes the gradients for the parameters using backpropagation.
+
+        Returns:
+            dict: A dictionary containing the gradients for weights and biases.
+        """
+        # Initialize the gradients dictionary
         m = self.y.shape[1]
-        dZ2 = self.A2 - self.y
-        dW2 = 1 / m * dZ2.dot(self.A1.T)
-        db2 = 1 / m * np.sum(dZ2, axis=1, keepdims=True)
+        # Number of layers in the neural network
+        C = len(self.parameters) // 2
 
-        dZ1 = np.dot(self.W2.T, dZ2) * self.A1 * (1 - self.A1)
-        dW1 = 1 / m * dZ1.dot(self.X.T)
-        db1 = 1 / m * np.sum(dZ1, axis=1, keepdims=True)
+        # For softmax + cross-entropy, the gradient of the output layer is simplified
+        dZ = self.activations['A' + str(C)] - self.y
+        gradients = {}
 
-        gradients = {
-            "dW1": dW1,
-            "db1": db1,
-            "dW2": dW2,
-            "db2": db2
-        }
+        # Loop through each layer to compute gradients
+        for c in reversed(range(1, C + 1)):
+            gradients['dW' + str(c)] = 1/m * np.dot(dZ, self.activations['A' + str(c - 1)].T)
+            gradients['db' + str(c)] = 1/m * np.sum(dZ, axis=1, keepdims=True)
+            if c > 1:
+                dZ = np.dot(self.parameters['W' + str(c)].T, dZ) * self.activations['A' + str(c - 1)] * (1 - self.activations['A' + str(c - 1)])
 
         return gradients
 
+
 class Update:
-    def __init__(self, gradients, parameters, learning_rate):
-        self.dW1 = gradients["dW1"]
-        self.db1 = gradients["db1"]
-        self.dW2 = gradients["dW2"]
-        self.db2 = gradients["db2"]
+    def __init__(self, gradients, parameters, learning_rate) -> None:
+        """
+        Initialize the Update class with gradients, parameters, and learning rate.
 
-        self.W1 = parameters["W1"]
-        self.b1 = parameters["b1"]
-        self.W2 = parameters["W2"]
-        self.b2 = parameters["b2"]
-
+        Args:
+            gradients (dict): Dictionary containing the gradients for weights and biases.
+            parameters (dict): Dictionary containing the current weights and biases of the neural network.
+            learning_rate (float): Learning rate for updating the parameters.
+        """
+        self.gradients = gradients
+        self.parameters = parameters
         self.learning_rate = learning_rate
 
-    def update(self):
-        W1 = self.W1 - self.learning_rate * self.dW1
-        b1 = self.b1 - self.learning_rate * self.db1
-        W2 = self.W2 - self.learning_rate * self.dW2
-        b2 = self.b2 - self.learning_rate * self.db2
+    def update(self) -> dict:
+        """
+        Updates the parameters of the neural network using the computed gradients.
 
-        parameters = {
-            "W1": W1,
-            "b1": b1,
-            "W2": W2,
-            "b2": b2
-        }
+        Returns:
+            dict: Updated parameters of the neural network.
+        """
+        # Update the parameters using the gradients and learning rate
+        C = len(self.parameters) // 2
 
-        return parameters
+        # Loop through each layer to update weights and biases
+        for c in range(1, C + 1):
+            self.parameters['W' + str(c)] = self.parameters['W' + str(c)] - self.learning_rate * self.gradients['dW' + str(c)]
+            self.parameters['b' + str(c)] = self.parameters['b' + str(c)] - self.learning_rate * self.gradients['db' + str(c)]
+
+        return self.parameters
+
 
 class Predict:
-    def __init__(self, X, parameters):
-        self.X = X
-        self.W1 = parameters["W1"]
-        self.b1 = parameters["b1"]
-        self.W2 = parameters["W2"]
-        self.b2 = parameters["b2"]
+    def __init__(self, X, parameters) -> None:
+        """
+        Initialize the Predict class with input features and parameters.
 
-    def predict(self):
+        Args:
+            X (np.ndarray): Input features for making predictions.
+            parameters (dict): Dictionary containing the weights and biases of the neural network.
+        """
+        self.X = X
+        self.parameters = parameters
+
+    def predict(self) -> np.ndarray:
+        """
+        Makes predictions using the trained neural network.
+
+        Returns:
+            np.ndarray: Predicted class indices based on the highest probability from softmax output.
+        """
+        # Perform forward propagation to get the activations
         activations = Model(self.X, self.parameters).forward_propagation()
-        A2 = activations["A2"]
-        return A2 >= 0.5
+        # Get the number of layers
+        C = len(self.parameters) // 2
+        # Get the activations of the output layer (softmax probabilities)
+        Af = activations['A' + str(C)]
+
+        # Return the class with highest probability
+        return np.argmax(Af, axis=0).reshape(1, -1)
+
+    def predict_proba(self) -> np.ndarray:
+        """
+        Returns the class probabilities using the trained neural network.
+
+        Returns:
+            np.ndarray: Predicted class probabilities from softmax output.
+        """
+        # Perform forward propagation to get the activations
+        activations = Model(self.X, self.parameters).forward_propagation()
+        # Get the number of layers
+        C = len(self.parameters) // 2
+        # Get the activations of the output layer (softmax probabilities)
+        return activations['A' + str(C)]
