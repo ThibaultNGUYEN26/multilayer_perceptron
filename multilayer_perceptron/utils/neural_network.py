@@ -1,5 +1,4 @@
 import numpy as np
-from tqdm import tqdm
 
 from .neuron import Initialisation, Model, Gradients, Update, Predict
 from utils.plot import TrainValidationPlot
@@ -82,7 +81,7 @@ class NeuralNetwork:
 
         C = len(parametres) // 2
         # Iterate through the number of epochs for training
-        for i in tqdm(range(self.epochs)):
+        for i in range(self.epochs):
 
             # Forward propagation on training data
             activations = Model(self.X_train, parametres).forward_propagation()
