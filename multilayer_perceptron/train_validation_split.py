@@ -137,8 +137,6 @@ def print_split_info(train_df, val_df=None):
 if __name__ == "__main__":
     # Load the dataset
     df = load_data("data/data.csv")
-    print(f"Original dataset: {len(df)} samples")
-    print(f"Benign: {len(df[df['diagnosis'] == 'B'])}, Malignant: {len(df[df['diagnosis'] == 'M'])}")
     print()
 
     # Test the train/validation split
@@ -153,16 +151,10 @@ if __name__ == "__main__":
     train_df.to_csv("data/train_data.csv", index=False)
     val_df.to_csv("data/val_data.csv", index=False)
     print("Split datasets saved:")
-    print("- train_data.csv")
-    print("- val_data.csv")
+    print("- data/train_data.csv")
+    print("- data/val_data.csv")
     print()
 
     # Plot the train/validation distribution
-    print("Plotting train/validation distribution...")
     plot = TrainValidationDistributionPlot(train_df, val_df)
     plot.plot()
-
-    # Test the original train/test split for comparison
-    print("Original train/test split:")
-    train_df_old, test_df_old = train_test_split_custom(df, test_size=0.2, random_state=42)
-    print_split_info(train_df_old)
