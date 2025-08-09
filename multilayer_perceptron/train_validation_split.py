@@ -1,8 +1,42 @@
 import numpy as np
 import pandas as pd
+import argparse
+import os
 
 from utils.data_loader import load_data
 from utils.plot import TrainValidationDistributionPlot
+
+
+def get_args() -> argparse.Namespace:
+    """
+    Parse command line arguments for train/validation split.
+    """
+    p = argparse.ArgumentParser(description="Split dataset into training and validation sets")
+    p.add_argument(
+        "--data", "-d",
+        type=str,
+        default="data/data.csv",
+        help="Path to input data file (default: data/data.csv)"
+    )
+    p.add_argument(
+        "--output-dir", "-o",
+        type=str,
+        default="data",
+        help="Directory to save split files (default: data)"
+    )
+    p.add_argument(
+        "--train-size", "-t",
+        type=float,
+        default=0.8,
+        help="Proportion of training data (default: 0.8)"
+    )
+    p.add_argument(
+        "--random-state", "-r",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility (default: 42)"
+    )
+    return p.parse_args()
 
 
 def train_validation_split(df, train_size=0.8, val_size=0.2, random_state=42):
@@ -135,24 +169,33 @@ def print_split_info(train_df, val_df=None):
 
 
 if __name__ == "__main__":
+    args = get_args()
+
     # Load the dataset
-    df = load_data("data/data.csv")
+    df = load_data(args.data)
     print()
 
     # Test the train/validation split
+    val_size = 1.0 - args.train_size
     train_df, val_df = train_validation_split(
-        df, train_size=0.8, val_size=0.2, random_state=42
+        df, train_size=args.train_size, val_size=val_size, random_state=args.random_state
     )
 
     print_split_info(train_df, val_df)
     print()
 
+    # Create output directory if it doesn't exist
+    os.makedirs(args.output_dir, exist_ok=True)
+
     # Save the split datasets
-    train_df.to_csv("data/train_data.csv", index=False)
-    val_df.to_csv("data/val_data.csv", index=False)
+    train_path = os.path.join(args.output_dir, "train_data.csv")
+    val_path = os.path.join(args.output_dir, "val_data.csv")
+
+    train_df.to_csv(train_path, index=False)
+    val_df.to_csv(val_path, index=False)
     print("Split datasets saved:")
-    print("- data/train_data.csv")
-    print("- data/val_data.csv")
+    print(f"- {train_path}")
+    print(f"- {val_path}")
     print()
 
     # Plot the train/validation distribution

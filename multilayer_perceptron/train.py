@@ -42,16 +42,24 @@ def standardize_features(X_train, X_test):
 def get_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument(
-        "--layer", type=int, nargs="+", default=[24, 24],
+        "--data-dir", "-d", type=str, default="data",
+        help="Directory containing train_data.csv and val_data.csv (default: data)"
+    )
+    p.add_argument(
+        "--layer", "-l", type=int, nargs="+", default=[24, 24],
         help="number of neurons in each hidden layer (default: `--layer 24 24`)"
     )
     p.add_argument(
-        "--learning_rate", type=float, default=0.01,
+        "--learning-rate", "-lr", type=float, default=0.01,
         help="learning rate for gradient descent (default: 0.01)"
     )
     p.add_argument(
-        "--epochs", type=int, default=100,
+        "--epochs", "-e", type=int, default=100,
         help="number of training epochs (default: 100)"
+    )
+    p.add_argument(
+        "--model", "-m", type=str, default="trained_model/trained_model.npy",
+        help="Save trained model to this file (default: trained_model/trained_model.npy)",
     )
     return p.parse_args()
 
@@ -59,15 +67,19 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     args = get_args()
 
+    # Build paths using the data directory argument
+    train_data_path = os.path.join(args.data_dir, "train_data.csv")
+    val_data_path = os.path.join(args.data_dir, "val_data.csv")
+
     # Ensure train_validation_split has been run
-    if not (os.path.isfile("data/train_data.csv") and os.path.isfile("data/val_data.csv")):
-        print("Error: 'data/train_data.csv' and 'data/val_data.csv' not found.")
+    if not (os.path.isfile(train_data_path) and os.path.isfile(val_data_path)):
+        print(f"Error: '{train_data_path}' and '{val_data_path}' not found.")
         print("Please run 'train_validation_split.py' first to generate these files.")
         sys.exit(1)
 
     # Load pre-saved train/validation CSVs
-    train_df = load_data("data/train_data.csv")
-    val_df   = load_data("data/val_data.csv")
+    train_df = load_data(train_data_path)
+    val_df   = load_data(val_data_path)
 
     # Remove any non-data rows (e.g. header rows imported as data)
     for df in (train_df, val_df):

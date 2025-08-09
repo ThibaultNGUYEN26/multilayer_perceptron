@@ -42,24 +42,24 @@ def get_args() -> argparse.Namespace:
     """
     p = argparse.ArgumentParser(description="Make predictions using trained neural network")
     p.add_argument(
-        "--model",
+        "--model", "-m",
         type=str,
-        default="trained_model.npy",
-        help="Path to trained model file (default: trained_model.npy)"
+        default="trained_model/trained_model.npy",
+        help="Path to trained model file (default: trained_model/trained_model.npy)"
     )
     p.add_argument(
-        "--data",
+        "--data", "-d",
         type=str,
-        default="data.csv",
-        help="Path to data file for prediction (default: data.csv)"
+        default="data/data.csv",
+        help="Path to data file for prediction (default: data/data.csv)"
     )
     p.add_argument(
-        "--output",
+        "--output", "-o",
         type=str,
         help="Path to save predictions as CSV file (optional)"
     )
     p.add_argument(
-        "--show-predictions",
+        "--show-predictions", "-s",
         type=int,
         default=10,
         help="Number of predictions to display (1 to max, default: 10)"
@@ -130,8 +130,8 @@ def main() -> None:
 
     # Display first N predictions
     print(f"\nFirst {n_show} predictions:")
-    print("ID       | Actual  | Predicted | Benign Prob | Malignant Prob")
-    print("-" * 65)
+    print(" ID      | Actual  | Predicted | Benign Prob | Malignant Prob | Result")
+    print("-" * 80)
     actual_labels = df['diagnosis']
     for i in range(n_show):
         sample_id = df.iloc[i]['id']
@@ -139,7 +139,8 @@ def main() -> None:
         pred_class = pred_labels[i]
         benign_prob = probabilities[0, i]
         malignant_prob = probabilities[1, i]
-        print(f"{sample_id:8} | {actual:7} | {pred_class:9} | {benign_prob:11.4f} | {malignant_prob:14.4f}")
+        result = "Correct" if (actual == 'M' and pred_class == 'Malignant') or (actual == 'B' and pred_class == 'Benign') else "Wrong"
+        print(f"{sample_id:8} | {actual:7} | {pred_class:9} | {benign_prob:11.4f} | {malignant_prob:14.4f} | {result}")
 
     # Evaluate if ground truth available
     if 'diagnosis' in df.columns:
@@ -160,10 +161,22 @@ def main() -> None:
         print(f"False Benign: {fb}")
         print(f"False Malignant: {fm}")
 
-    # Save CSV if requested
-    if args.output:
+    # Save all predictions to predictions.csv
+    all_predictions = pd.DataFrame({
+        'ID': df['id'],
+        'Actual': df['diagnosis'],
+        'Predicted': pred_labels,
+        'Benign_Prob': probabilities[0, :],
+        'Malignant_Prob': probabilities[1, :],
+        'Result': ['Correct' if (actual == 'M' and pred == 'Malignant') or (actual == 'B' and pred == 'Benign') else 'Wrong'
+                  for actual, pred in zip(df['diagnosis'], pred_labels)]
+    })
+
+    all_predictions.to_csv("predictions.csv", index=False)
+    print(f"\nAll {len(all_predictions)} predictions saved to: predictions.csv")    # Save full results CSV if requested
+    if args.output and args.output != "predictions.csv":
         results_df.to_csv(args.output, index=False)
-        print(f"\nPredictions saved to: {args.output}")
+        print(f"Full predictions saved to: {args.output}")
 
 if __name__ == "__main__":
     main()
