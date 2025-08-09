@@ -115,4 +115,4 @@ class NeuralNetwork:
         # plot training and validation accuracy and loss
         TrainValidationPlot(training_history).plot()
 
-        return parametres
+        return parametres, training_history

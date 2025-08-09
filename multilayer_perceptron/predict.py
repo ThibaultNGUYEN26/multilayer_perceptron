@@ -8,25 +8,6 @@ from utils.neuron import Predict
 from utils.neural_network import binary_cross_entropy_loss
 
 
-# def binary_cross_entropy_loss(y_true, y_pred) -> float:
-#     """
-#     Calculate binary cross-entropy loss.
-
-#     Args:
-#         y_true (np.ndarray): True labels (0 or 1)
-#         y_pred (np.ndarray): Predicted probabilities for the positive class
-
-#     Returns:
-#         float: Binary cross-entropy loss
-#     """
-#     eps = 1e-15
-#     # Clip predictions to avoid log(0)
-#     y_pred = np.clip(y_pred, eps, 1 - eps)
-
-#     # Calculate binary cross-entropy loss
-#     return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
-
-
 def standardize_features_with_saved_stats(X, stats) -> np.ndarray:
     """
     Standardize features using previously saved statistics.
@@ -93,6 +74,14 @@ def main() -> None:
         print(f"Architecture: {model_data.get('architecture', 'Unknown')}")
         print(f"Learning rate: {model_data.get('learning_rate', 'Unknown')}")
         print(f"Training epochs: {model_data.get('epochs', model_data.get('iterations', 'Unknown'))}")
+
+        # Show training history summary if available
+        if 'training_history' in model_data:
+            history = model_data['training_history']
+            print(f"Final training accuracy: {history[-1, 1]:.4f}")
+            print(f"Final validation accuracy: {history[-1, 3]:.4f}")
+            print(f"Best validation accuracy: {np.max(history[:, 3]):.4f}")
+
     except FileNotFoundError:
         print(f"Error: Model file '{args.model}' not found!")
         print("Please train a model first using train.py")

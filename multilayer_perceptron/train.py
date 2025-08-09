@@ -115,18 +115,19 @@ def main() -> None:
     X_train, X_val = standardize_features(X_train_raw, X_val_raw)
 
     # Train
-    nn = NeuralNetwork(
+    neural_network = NeuralNetwork(
         X_train, y_train,
         X_val, y_val,
         n_hidden=args.layer,
         learning_rate=args.learning_rate,
         epochs=args.epochs
     )
-    parameters = nn.deep_neural_network()
+    parameters, training_history = neural_network.deep_neural_network()
 
-    # Save model
+    # Save model with training history
     model_data = {
         'parameters': parameters,
+        'training_history': training_history,
         'architecture': args.layer,
         'learning_rate': args.learning_rate,
         'epochs': args.epochs
