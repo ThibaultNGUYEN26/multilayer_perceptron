@@ -97,6 +97,156 @@ class CorrelationPlot:
         plt.tight_layout()
         plt.show()
 
+class StatisticalSummaryPlot:
+    def __init__(self, df) -> None:
+        """
+        Initialize the StatisticalSummaryPlot class with a DataFrame.
+
+        Args:
+            df : pandas DataFrame
+        """
+        self.df = df.copy()
+
+    def plot(self) -> None:
+        """
+        Plot statistical summary including means of _mean, _se, and _worst features by diagnosis, plus dataset summary.
+        Data is normalized before plotting to show standardized feature distributions.
+        """
+
+        # Get numeric features (excluding id and diagnosis)
+        numeric_features = self.df.select_dtypes(include=[np.number]).columns.tolist()
+        if 'id' in numeric_features:
+            numeric_features.remove('id')
+
+        if not numeric_features:
+            print("No numeric features found for statistical summary.")
+            return
+
+        # NORMALIZE THE DATA BEFORE PLOTTING
+        df_normalized = self.df.copy()
+
+        # Extract feature data for normalization (transpose for standardization)
+        X_raw = df_normalized[numeric_features].values.T  # Shape: (n_features, n_samples)
+
+        # Standardize features: (X - mean) / std
+        mean = np.mean(X_raw, axis=1, keepdims=True)
+        std = np.std(X_raw, axis=1, keepdims=True)
+        std = np.where(std == 0, 1, std)  # Prevent division by zero
+        X_normalized = (X_raw - mean) / std
+
+        # Put normalized data back into dataframe
+        df_normalized[numeric_features] = X_normalized.T
+
+        # Define base features and suffix groups
+        base_features = [
+            "radius", "texture", "perimeter", "area", "smoothness",
+            "compactness", "concavity", "concave_points", "symmetry", "fractal_dimension"
+        ]
+        mean_feats   = [f + '_mean'    for f in base_features if f + '_mean'    in numeric_features]
+        se_feats     = [f + '_se'      for f in base_features if f + '_se'      in numeric_features]
+        worst_feats  = [f + '_worst'   for f in base_features if f + '_worst'   in numeric_features]
+
+        # Calculate descriptive stats on NORMALIZED data
+        benign_stats    = df_normalized[df_normalized['diagnosis'] == 'B'][numeric_features].describe()
+        malignant_stats = df_normalized[df_normalized['diagnosis'] == 'M'][numeric_features].describe()
+
+        # Prepare subplots
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        width = 0.35
+
+        # Plot 1: Mean (_mean) comparison
+        x1 = np.arange(len(mean_feats))
+        mb = benign_stats.loc['mean', mean_feats]
+        mm = malignant_stats.loc['mean', mean_feats]
+        bars1_benign = ax1.bar(x1 - width/2, mb, width, label='Benign', color='#51C759', alpha=0.7)
+        bars1_malignant = ax1.bar(x1 + width/2, mm, width, label='Malignant', color='#EE5E59', alpha=0.7)
+        ax1.set_xticks(x1)
+        ax1.set_xticklabels(mean_feats, rotation=45, ha='right')
+        ax1.set_ylabel('Normalized Mean Value')
+        ax1.set_title('Normalized Mean (_mean) Comparison by Diagnosis')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        # mplcursors for Plot 1
+        cursor1 = mplcursors.cursor([bars1_benign, bars1_malignant], hover=True)
+        @cursor1.connect("add")
+        def on_add1(sel):
+            label = 'Benign' if sel.artist == bars1_benign else 'Malignant'
+            feature = mean_feats[sel.index]
+            value = sel.artist[sel.index].get_height()
+            sel.annotation.set_text(f"{label}\n{feature}\n{value:.2f}")
+
+        # Plot 2: SE (_se) comparison
+        x2 = np.arange(len(se_feats))
+        sb = benign_stats.loc['mean', se_feats]
+        sm = malignant_stats.loc['mean', se_feats]
+        bars2_benign = ax2.bar(x2 - width/2, sb, width, label='Benign', color='#51C759', alpha=0.7)
+        bars2_malignant = ax2.bar(x2 + width/2, sm, width, label='Malignant', color='#EE5E59', alpha=0.7)
+        ax2.set_xticks(x2)
+        ax2.set_xticklabels(se_feats, rotation=45, ha='right')
+        ax2.set_ylabel('Normalized Average _se Value')
+        ax2.set_title('Normalized Standard Error (_se) Comparison by Diagnosis')
+        ax2.legend()
+        ax2.grid(True, alpha=0.3)
+        # mplcursors for Plot 2
+        cursor2 = mplcursors.cursor([bars2_benign, bars2_malignant], hover=True)
+        @cursor2.connect("add")
+        def on_add2(sel):
+            label = 'Benign' if sel.artist == bars2_benign else 'Malignant'
+            feature = se_feats[sel.index]
+            value = sel.artist[sel.index].get_height()
+            sel.annotation.set_text(f"{label}\n{feature}\n{value:.2f}")
+
+        # Plot 3: Worst (_worst) comparison
+        x3 = np.arange(len(worst_feats))
+        wb = benign_stats.loc['mean', worst_feats]
+        wm = malignant_stats.loc['mean', worst_feats]
+        bars3_benign = ax3.bar(x3 - width/2, wb, width, label='Benign', color='#51C759', alpha=0.7)
+        bars3_malignant = ax3.bar(x3 + width/2, wm, width, label='Malignant', color='#EE5E59', alpha=0.7)
+        ax3.set_xticks(x3)
+        ax3.set_xticklabels(worst_feats, rotation=45, ha='right')
+        ax3.set_ylabel('Normalized Mean Worst Value')
+        ax3.set_title('Normalized Worst (_worst) Comparison by Diagnosis')
+        ax3.legend()
+        ax3.grid(True, alpha=0.3)
+        # mplcursors for Plot 3
+        cursor3 = mplcursors.cursor([bars3_benign, bars3_malignant], hover=True)
+        @cursor3.connect("add")
+        def on_add3(sel):
+            label = 'Benign' if sel.artist == bars3_benign else 'Malignant'
+            feature = worst_feats[sel.index]
+            value = sel.artist[sel.index].get_height()
+            sel.annotation.set_text(f"{label}\n{feature}\n{value:.2f}")
+
+        # Plot 4: Dataset summary
+        total_features   = len([f for f in base_features if any(
+                 f + suffix in numeric_features for suffix in ['_mean', '_se', '_worst'])])
+        benign_count     = len(self.df[self.df['diagnosis'] == 'B'])
+        malignant_count  = len(self.df[self.df['diagnosis'] == 'M'])
+        categories = ['Total Features', 'Benign Samples', 'Malignant Samples']
+        values     = [total_features, benign_count, malignant_count]
+        colors     = ['#FFA500', '#51C759', '#EE5E59']
+
+        bars = ax4.bar(categories, values, color=colors, alpha=0.7)
+        ax4.set_ylabel('Count')
+        ax4.set_title('Dataset Summary')
+        ax4.grid(True, alpha=0.3)
+        ax4.set_ylim(0, 400)
+        ax4.set_yticks(np.arange(0, 401, 50))
+
+        # mplcursors for Plot 4
+        cursor4 = mplcursors.cursor(bars, hover=True)
+        @cursor4.connect("add")
+        def on_add4(sel):
+            sel.annotation.set_text(f"{categories[sel.index]}: {values[sel.index]}")
+
+        # Close on Escape
+        def on_key(event):
+            if event.key == 'escape':
+                plt.close(event.canvas.figure)
+        fig.canvas.mpl_connect('key_press_event', on_key)
+
+        plt.tight_layout()
+        plt.show()
 
 class TrainValidationDistributionPlot:
     def __init__(self, train_df, val_df) -> None:
