@@ -8,12 +8,9 @@ from utils.neuron import Predict
 
 
 def binary_cross_entropy_loss(y_true, y_pred):
-    """
-    Calculate binary cross-entropy loss.
-    """
-    epsilon = 1e-15
-    y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
-    return -np.mean(np.sum(y_true * np.log(y_pred), axis=0))
+    eps = 1e-15
+    y_pred = np.clip(y_pred, eps, 1 - eps)
+    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
 
 def standardize_features_with_saved_stats(X, stats):
@@ -23,17 +20,6 @@ def standardize_features_with_saved_stats(X, stats):
     mean = stats['mean']
     std = stats['std']
     return (X - mean) / std
-
-
-def to_one_hot(y, num_classes=2):
-    """
-    Convert labels to one-hot encoding.
-    """
-    y_flat = y.flatten().astype(int)
-    n_samples = y_flat.shape[0]
-    one_hot = np.zeros((num_classes, n_samples), dtype=int)
-    one_hot[y_flat, np.arange(n_samples)] = 1
-    return one_hot
 
 
 def get_args() -> argparse.Namespace:
@@ -144,22 +130,29 @@ def main() -> None:
 
     # Evaluate if ground truth available
     if 'diagnosis' in df.columns:
+        # Convert actual labels to integers
         actual_ints = df['diagnosis'].map({'B':0,'M':1}).values
-        y_true_one_hot = to_one_hot(actual_ints.reshape(1, -1), num_classes=2)
-        bce_loss = binary_cross_entropy_loss(y_true_one_hot, probabilities)
+        # Convert actual labels to float for loss calculation
+        y_true = actual_ints.astype(float)
+        # Get predicted probabilities for the malignant class
+        p_malignant = probabilities[1, :] if probabilities.ndim == 2 else probabilities.ravel()
+        # Calculate binary cross-entropy loss
+        bce_loss = binary_cross_entropy_loss(y_true, p_malignant)
+        # Calculate accuracy
         accuracy = np.mean(predictions.flatten() == actual_ints)
         print(f"\nEvaluation Results:")
         print(f"Binary Cross-Entropy Loss: {bce_loss:.4f}")
         print(f"Overall Accuracy: {accuracy:.3f}")
+        # Detailed results
         tb = sum((actual_ints==0)&(predictions.flatten()==0))
         tm = sum((actual_ints==1)&(predictions.flatten()==1))
         fb = sum((actual_ints==1)&(predictions.flatten()==0))
         fm = sum((actual_ints==0)&(predictions.flatten()==1))
         print(f"\nDetailed Results:")
-        print(f"True Benign: {tb}")
-        print(f"True Malignant: {tm}")
-        print(f"False Benign: {fb}")
-        print(f"False Malignant: {fm}")
+        print(f"Correct number of Benign: {tb}")
+        print(f"Correct number of Malignant: {tm}")
+        print(f"Wrong number of Benign: {fb}")
+        print(f"Wrong number of Malignant: {fm}")
 
     # Save all predictions to predictions.csv
     all_predictions = pd.DataFrame({
@@ -172,11 +165,10 @@ def main() -> None:
                   for actual, pred in zip(df['diagnosis'], pred_labels)]
     })
 
-    all_predictions.to_csv("predictions.csv", index=False)
-    print(f"\nAll {len(all_predictions)} predictions saved to: predictions.csv")    # Save full results CSV if requested
-    if args.output and args.output != "predictions.csv":
-        results_df.to_csv(args.output, index=False)
-        print(f"Full predictions saved to: {args.output}")
+    # Save predictions to CSV only if output flag is provided
+    if args.output:
+        all_predictions.to_csv(args.output, index=False)
+        print(f"\nAll {len(all_predictions)} predictions saved to: {args.output}")
 
 if __name__ == "__main__":
     main()
