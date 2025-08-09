@@ -9,29 +9,41 @@ from utils.neural_network import NeuralNetwork
 from utils.neuron import Predict
 
 
-def to_one_hot(y, num_classes=2):
+def to_one_hot(y, num_classes=2) -> np.ndarray:
     """
-    Convert labels to one-hot encoding.
+    Convert integer class labels to one-hot encoded format.
+    One-hot encoding is a process that transforms categorical labels into a binary matrix representation.
+    Each label is represented as a vector of zeros with a single one at the index corresponding to the class.
+    For example, for 3 classes, label 1 becomes [0, 1, 0].
+    One-hot encoding is useful for multi-class classification problems.
 
     Args:
-        y (np.ndarray): Labels as integers or binary array of shape (1, n_samples) or (n_samples,)
-        num_classes (int): Number of classes
+        y (np.ndarray): Labels as integers or binary array of shape (1, n_samples) or (n_samples,).
+        num_classes (int): Number of unique classes.
 
     Returns:
-        np.ndarray: One-hot encoded labels of shape (num_classes, n_samples)
+        np.ndarray: One-hot encoded labels of shape (num_classes, n_samples).
     """
     # ensure y is a flat array of integer class labels
     y_flat = y.flatten().astype(int)
     n_samples = y_flat.shape[0]
     one_hot = np.zeros((num_classes, n_samples), dtype=int)
     one_hot[y_flat, np.arange(n_samples)] = 1
+
     return one_hot
 
 
-def standardize_features(X_train, X_test):
+def standardize_features(X_train, X_test) -> tuple:
     """
     Standardize features by subtracting mean and dividing by standard deviation.
     Uses training data statistics to transform both training and test data.
+
+    Args:
+        X_train (np.ndarray): Training features of shape (n_features, n_samples)
+        X_test (np.ndarray): Test features of shape (n_features, n_samples)
+
+    Returns:
+        tuple: (standardized_X_train, standardized_X_test)
     """
     mean = np.mean(X_train, axis=1, keepdims=True)
     std = np.std(X_train, axis=1, keepdims=True)

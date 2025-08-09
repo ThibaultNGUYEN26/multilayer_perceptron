@@ -39,7 +39,7 @@ def get_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def train_validation_split(df, train_size=0.8, val_size=0.2, random_state=42):
+def train_validation_split(df, train_size=0.8, val_size=0.2, random_state=42) -> tuple:
     """
     Split dataset into training and validation sets with stratification by diagnosis.
 
@@ -64,10 +64,10 @@ def train_validation_split(df, train_size=0.8, val_size=0.2, random_state=42):
 
     # Calculate sizes for each class
     n_benign_val = int(len(benign) * val_size)
-    n_benign_train = len(benign) - n_benign_val
+    # n_benign_train = len(benign) - n_benign_val
 
     n_malignant_val = int(len(malignant) * val_size)
-    n_malignant_train = len(malignant) - n_malignant_val
+    # n_malignant_train = len(malignant) - n_malignant_val
 
     # Generate random indices for benign samples
     benign_indices = np.random.permutation(len(benign))
@@ -94,7 +94,7 @@ def train_validation_split(df, train_size=0.8, val_size=0.2, random_state=42):
     return train_df, val_df
 
 
-def train_test_split_custom(df, test_size=0.2, random_state=42):
+def train_test_split_custom(df, test_size=0.2, random_state=42) -> tuple:
     """
     Split dataset into training and testing sets with stratification by diagnosis.
     This is the original function for backward compatibility.
@@ -136,7 +136,7 @@ def train_test_split_custom(df, test_size=0.2, random_state=42):
     return train_df, test_df
 
 
-def print_split_info(train_df, val_df=None):
+def print_split_info(train_df, val_df=None) -> None:
     """
     Print information about the dataset splits.
 
@@ -168,21 +168,24 @@ def print_split_info(train_df, val_df=None):
     print("-" * 50)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """
+    Main function to perform train/validation split and save results.
+    """
     args = get_args()
 
     # Load the dataset
     df = load_data(args.data)
-    print()
+    print("Loaded dataset:")
+    print(df.head())
 
-    # Test the train/validation split
-    val_size = 1.0 - args.train_size
+    # Perform train/validation split
     train_df, val_df = train_validation_split(
-        df, train_size=args.train_size, val_size=val_size, random_state=args.random_state
+        df, train_size=args.train_size, val_size=1.0 - args.train_size, random_state=args.random_state
     )
 
+    # Print split information
     print_split_info(train_df, val_df)
-    print()
 
     # Create output directory if it doesn't exist
     os.makedirs(args.output_dir, exist_ok=True)
@@ -192,12 +195,14 @@ if __name__ == "__main__":
     val_path = os.path.join(args.output_dir, "val_data.csv")
 
     train_df.to_csv(train_path, index=False)
-    val_df.to_csv(val_path, index=False)
-    print("Split datasets saved:")
-    print(f"- {train_path}")
-    print(f"- {val_path}")
-    print()
+    if val_df is not None:
+        val_df.to_csv(val_path, index=False)
+
+    print(f"Split datasets saved:\n- {train_path}\n- {val_path}")
 
     # Plot the train/validation distribution
     plot = TrainValidationDistributionPlot(train_df, val_df)
     plot.plot()
+
+if __name__ == "__main__":
+    main()

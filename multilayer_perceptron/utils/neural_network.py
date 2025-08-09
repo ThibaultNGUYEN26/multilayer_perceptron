@@ -3,6 +3,24 @@ import numpy as np
 from .neuron import Initialisation, Model, Gradients, Update, Predict
 from utils.plot import TrainValidationPlot
 
+def binary_cross_entropy_loss(y_true, y_pred) -> float:
+    """
+    Calculate binary cross-entropy loss.
+
+    Args:
+        y_true (np.ndarray): True labels (0 or 1)
+        y_pred (np.ndarray): Predicted probabilities for the positive class
+
+    Returns:
+        float: Binary cross-entropy loss
+    """
+    eps = 1e-15
+    # Clip predictions to avoid log(0)
+    y_pred = np.clip(y_pred, eps, 1 - eps)
+
+    # Calculate binary cross-entropy loss
+    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+
 class NeuralNetwork:
 
     def __init__(self, X_train, y_train, X_val, y_val, n_hidden, learning_rate, epochs) -> None:
@@ -27,23 +45,7 @@ class NeuralNetwork:
         self.learning_rate = learning_rate
         self.epochs      = epochs
 
-    def cross_entropy_loss(self, y_true, y_pred):
-        """
-        Compute cross-entropy loss for multi-class classification.
-
-        Args:
-            y_true (np.ndarray): True labels (one-hot encoded)
-            y_pred (np.ndarray): Predicted probabilities from softmax
-
-        Returns:
-            float: Cross-entropy loss
-        """
-        # Add small epsilon to prevent log(0)
-        epsilon = 1e-15
-        y_pred = np.clip(y_pred, epsilon, 1 - epsilon)
-        return -np.mean(np.sum(y_true * np.log(y_pred), axis=0))
-
-    def accuracy_score(self, y_true, y_pred):
+    def accuracy_score(self, y_true, y_pred) -> float:
         """
         Calculate the accuracy score.
 
@@ -92,7 +94,7 @@ class NeuralNetwork:
 
             # Training metrics
             Af_train = activations['A' + str(C)]
-            training_history[i, 0] = self.cross_entropy_loss(self.y_train, Af_train)
+            training_history[i, 0] = binary_cross_entropy_loss(self.y_train, Af_train)
             y_pred_train = Predict(self.X_train, parametres).predict()
             y_true_train_class = np.argmax(self.y_train, axis=0)
             training_history[i, 1] = self.accuracy_score(y_true_train_class, y_pred_train.flatten())
@@ -100,7 +102,7 @@ class NeuralNetwork:
             # Validation metrics
             activations_val = Model(self.X_val, parametres).forward_propagation()
             Af_val = activations_val['A' + str(C)]
-            training_history[i, 2] = self.cross_entropy_loss(self.y_val, Af_val)
+            training_history[i, 2] = binary_cross_entropy_loss(self.y_val, Af_val)
             y_pred_val = Predict(self.X_val, parametres).predict()
             y_true_val_class = np.argmax(self.y_val, axis=0)
             training_history[i, 3] = self.accuracy_score(y_true_val_class, y_pred_val.flatten())

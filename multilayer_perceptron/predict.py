@@ -5,26 +5,51 @@ import sys
 
 from utils.data_loader import load_data
 from utils.neuron import Predict
+from utils.neural_network import binary_cross_entropy_loss
 
 
-def binary_cross_entropy_loss(y_true, y_pred):
-    eps = 1e-15
-    y_pred = np.clip(y_pred, eps, 1 - eps)
-    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+# def binary_cross_entropy_loss(y_true, y_pred) -> float:
+#     """
+#     Calculate binary cross-entropy loss.
+
+#     Args:
+#         y_true (np.ndarray): True labels (0 or 1)
+#         y_pred (np.ndarray): Predicted probabilities for the positive class
+
+#     Returns:
+#         float: Binary cross-entropy loss
+#     """
+#     eps = 1e-15
+#     # Clip predictions to avoid log(0)
+#     y_pred = np.clip(y_pred, eps, 1 - eps)
+
+#     # Calculate binary cross-entropy loss
+#     return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
 
-def standardize_features_with_saved_stats(X, stats):
+def standardize_features_with_saved_stats(X, stats) -> np.ndarray:
     """
     Standardize features using previously saved statistics.
+
+    Args:
+        X (np.ndarray): Features to standardize
+        stats (dict): Dictionary containing 'mean' and 'std' for standardization
+
+    Returns:
+        np.ndarray: Standardized features
     """
     mean = stats['mean']
     std = stats['std']
+
     return (X - mean) / std
 
 
 def get_args() -> argparse.Namespace:
     """
     Parse command line arguments for prediction.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments
     """
     p = argparse.ArgumentParser(description="Make predictions using trained neural network")
     p.add_argument(
@@ -54,6 +79,10 @@ def get_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """
+    Main function to load model, data, and make predictions.
+    Displays predictions and saves results to CSV if specified.
+    """
     args = get_args()
 
     # Load the trained model
