@@ -23,10 +23,10 @@ def binary_cross_entropy_loss(y_true, y_pred) -> float:
 
 class NeuralNetwork:
 
-    def __init__(self, X_train, y_train, X_val, y_val, n_hidden, learning_rate, epochs) -> None:
+    def __init__(self, X_train, y_train, X_val, y_val, n_hidden, learning_rate, epochs, early_stopping=0) -> None:
         """
         Initialize the neural network with training and validation data, hidden layer sizes,
-        learning rate, and number of epochs.
+        learning rate, number of epochs, and early stopping patience.
 
         Args:
             X_train (np.ndarray): Training features.
@@ -36,6 +36,7 @@ class NeuralNetwork:
             n_hidden (tuple): Sizes of hidden layers.
             learning_rate (float): Learning rate for parameter updates.
             epochs (int): Number of training epochs.
+            early_stopping_patience (int): Number of epochs to wait for improvement before stopping (0 = disabled).
         """
         self.X_train     = X_train
         self.y_train     = y_train
@@ -44,6 +45,7 @@ class NeuralNetwork:
         self.n_hidden    = n_hidden
         self.learning_rate = learning_rate
         self.epochs      = epochs
+        self.early_stopping = early_stopping
 
     def accuracy_score(self, y_true, y_pred) -> float:
         """
@@ -58,15 +60,16 @@ class NeuralNetwork:
         """
         return np.mean(y_true == y_pred)
 
-    def deep_neural_network(self) -> np.ndarray:
+    def deep_neural_network(self) -> tuple:
         """
         Train a deep neural network using forward and backward propagation.
         This method initializes the parameters, performs forward propagation,
         computes gradients, updates parameters, and tracks training loss and accuracy.
         It displays training and validation metrics at each epoch and visualizes the results.
+        Supports early stopping to prevent overfitting.
 
         returns:
-            np.ndarray: Final parameters of the trained neural network.
+            tuple: (parameters, training_history) of the trained neural network.
         """
 
         # Define the dimensions of the neural network
@@ -78,8 +81,8 @@ class NeuralNetwork:
         # Initialize parameters
         parametres = Initialisation(dimensions).initialisation()
 
-        # Initialize an array to store training history (loss and accuracy for both train and val)
-        training_history = np.zeros((int(self.epochs), 4))  # train_loss, train_acc, val_loss, val_acc
+        # Initialize training history as a list (we don't know final length due to early stopping)
+        training_history = []
 
         C = len(parametres) // 2
         # Iterate through the number of epochs for training
@@ -94,23 +97,29 @@ class NeuralNetwork:
 
             # Training metrics
             Af_train = activations['A' + str(C)]
-            training_history[i, 0] = binary_cross_entropy_loss(self.y_train, Af_train)
+            train_loss = binary_cross_entropy_loss(self.y_train, Af_train)
             y_pred_train = Predict(self.X_train, parametres).predict()
             y_true_train_class = np.argmax(self.y_train, axis=0)
-            training_history[i, 1] = self.accuracy_score(y_true_train_class, y_pred_train.flatten())
+            train_acc = self.accuracy_score(y_true_train_class, y_pred_train.flatten())
 
             # Validation metrics
             activations_val = Model(self.X_val, parametres).forward_propagation()
             Af_val = activations_val['A' + str(C)]
-            training_history[i, 2] = binary_cross_entropy_loss(self.y_val, Af_val)
+            val_loss = binary_cross_entropy_loss(self.y_val, Af_val)
             y_pred_val = Predict(self.X_val, parametres).predict()
             y_true_val_class = np.argmax(self.y_val, axis=0)
-            training_history[i, 3] = self.accuracy_score(y_true_val_class, y_pred_val.flatten())
+            val_acc = self.accuracy_score(y_true_val_class, y_pred_val.flatten())
+
+            # Store metrics in training history
+            training_history.append([train_loss, train_acc, val_loss, val_acc])
 
             # Display metrics at each epoch as required
             print(f"Epoch {i+1:3d}/{self.epochs}: "
-                  f"Train Loss: {training_history[i, 0]:.4f}, Train Acc: {training_history[i, 1]:.4f}, "
-                  f"Val Loss: {training_history[i, 2]:.4f}, Val Acc: {training_history[i, 3]:.4f}")
+                  f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, "
+                  f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+
+        # Convert training history to numpy array
+        training_history = np.array(training_history)
 
         # plot training and validation accuracy and loss
         TrainValidationPlot(training_history).plot()

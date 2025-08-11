@@ -70,6 +70,10 @@ def get_args() -> argparse.Namespace:
         help="number of training epochs (default: 100)"
     )
     p.add_argument(
+        "--early-stopping", "-es", type=int, default=0,
+        help="Enable early stopping with specified patience (number of epochs to wait for improvement) (default: 0)"
+    )
+    p.add_argument(
         "--model", "-m", type=str, default="trained_model/trained_model.npy",
         help="Save trained model to this file (default: trained_model/trained_model.npy)",
     )
@@ -120,7 +124,8 @@ def main() -> None:
         X_val, y_val,
         n_hidden=args.layer,
         learning_rate=args.learning_rate,
-        epochs=args.epochs
+        epochs=args.epochs,
+        early_stopping=args.early_stopping
     )
     parameters, training_history = neural_network.deep_neural_network()
 

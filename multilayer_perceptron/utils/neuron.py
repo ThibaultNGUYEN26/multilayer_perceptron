@@ -117,8 +117,8 @@ class Gradients:
 
         # Loop through each layer to compute gradients
         for c in reversed(range(1, C + 1)):
-            gradients['dW' + str(c)] = 1/m * np.dot(dZ, self.activations['A' + str(c - 1)].T)
-            gradients['db' + str(c)] = 1/m * np.sum(dZ, axis=1, keepdims=True)
+            gradients['dW' + str(c)] = 1 / m * np.dot(dZ, self.activations['A' + str(c - 1)].T)
+            gradients['db' + str(c)] = 1 / m * np.sum(dZ, axis=1, keepdims=True)
             if c > 1:
                 dZ = np.dot(self.parameters['W' + str(c)].T, dZ) * self.activations['A' + str(c - 1)] * (1 - self.activations['A' + str(c - 1)])
 
