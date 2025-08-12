@@ -5,7 +5,25 @@ import sys
 
 from utils.data_loader import load_data
 from utils.neuron import Predict
-from utils.neural_network import binary_cross_entropy_loss
+
+
+def binary_cross_entropy_loss(y_true, y_pred) -> float:
+    """
+    Calculate binary cross-entropy loss.
+
+    Args:
+        y_true (np.ndarray): True labels (0 or 1)
+        y_pred (np.ndarray): Predicted probabilities for the positive class
+
+    Returns:
+        float: Binary cross-entropy loss
+    """
+    eps = 1e-15
+    # Clip predictions to avoid log(0)
+    y_pred = np.clip(y_pred, eps, 1 - eps)
+
+    # Calculate binary cross-entropy loss
+    return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
 
 def standardize_features_with_saved_stats(X, stats) -> np.ndarray:
