@@ -394,3 +394,78 @@ class TrainValidationPlot:
 
         plt.tight_layout()
         plt.show()
+
+class ModelComparisonPlot:
+    def __init__(self, model1_data, model2_data, model1_name, model2_name) -> None:
+        """
+        Initialize the plotter with default figure size.
+
+        Args:
+            model1_data (dict): Data for the first model containing 'training_history'.
+            model2_data (dict): Data for the second model containing 'training_history'.
+            model1_name (str): Name of the first model (used for labeling).
+            model2_name (str): Name of the second model (used for labeling).
+        """
+        self.model1_data = model1_data
+        self.model2_data = model2_data
+        self.model1_name = model1_name
+        self.model2_name = model2_name
+        self.figsize = (14, 10)
+
+
+    def plot_comparison(self) -> None:
+        """
+        Plot learning curves comparison for two models.
+        """
+
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=self.figsize)
+        fig.suptitle('Model Comparison: Learning Curves', fontsize=16, fontweight='bold')
+
+        # Get training histories
+        history1 = self.model1_data['training_history']
+        history2 = self.model2_data['training_history']
+
+        epochs1 = range(1, len(history1) + 1)
+        epochs2 = range(1, len(history2) + 1)
+
+        # Use model file names as labels (remove .npy extension)
+        label1 = self.model1_name.replace('.npy', '')
+        label2 = self.model2_name.replace('.npy', '')
+
+        # Plot Training Loss
+        self._plot_metric(ax1, epochs1, history1[:, 0], epochs2, history2[:, 0], label1, label2, 'Training Loss', 'Loss')
+        # Plot Validation Loss
+        self._plot_metric(ax2, epochs1, history1[:, 2], epochs2, history2[:, 2], label1, label2, 'Validation Loss', 'Loss')
+        # Plot Training Accuracy
+        self._plot_metric(ax3, epochs1, history1[:, 1], epochs2, history2[:, 1], label1, label2, 'Training Accuracy', 'Accuracy')
+        # Plot Validation Accuracy
+        self._plot_metric(ax4, epochs1, history1[:, 3], epochs2, history2[:, 3], label1, label2, 'Validation Accuracy', 'Accuracy')
+
+        # Connect key press event to close the plot
+        fig.canvas.mpl_connect('key_press_event', on_key)
+
+        plt.tight_layout()
+        plt.show()
+
+    def _plot_metric(self, ax, epochs1, data1, epochs2, data2, label1, label2, title, ylabel) -> None:
+        """
+        Helper method to plot a single metric comparison.
+
+        Args:
+            ax (matplotlib.axes.Axes): The axes to plot on.
+            epochs1 (range): Range of epochs for the first model.
+            data1 (np.ndarray): Data for the first model.
+            epochs2 (range): Range of epochs for the second model.
+            data2 (np.ndarray): Data for the second model.
+            label1 (str): Label for the first model.
+            label2 (str): Label for the second model.
+            title (str): Title of the plot.
+            ylabel (str): Y-axis label.
+        """
+        ax.plot(epochs1, data1, 'b-', label=label1, linewidth=2)
+        ax.plot(epochs2, data2, 'r-', label=label2, linewidth=2)
+        ax.set_title(title)
+        ax.set_xlabel('Epoch')
+        ax.set_ylabel(ylabel)
+        ax.legend()
+        ax.grid(True, alpha=0.3)

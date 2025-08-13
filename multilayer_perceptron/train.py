@@ -58,8 +58,8 @@ def get_args() -> argparse.Namespace:
         help="Directory containing train_data.csv and val_data.csv (default: data)"
     )
     p.add_argument(
-        "--layer", "-l", type=int, nargs="+", default=[24, 24],
-        help="number of neurons in each hidden layer (default: `--layer 24 24`)"
+        "--layers", "-l", type=int, nargs="+", default=[24, 24],
+        help="number of neurons in each hidden layer (default: `--layers 24 24`)"
     )
     p.add_argument(
         "--learning-rate", "-lr", type=float, default=0.01,
@@ -74,8 +74,12 @@ def get_args() -> argparse.Namespace:
         help="Enable early stopping with specified patience (number of epochs to wait for improvement) (default: 0)"
     )
     p.add_argument(
-        "--model", "-m", type=str, default="trained_model/trained_model.npy",
-        help="Save trained model to this file (default: trained_model/trained_model.npy)",
+        "--model", "-m", type=str, default="trained_model/gradient_descent.npy",
+        help="Save trained model to this file (default: trained_model/gradient_descent.npy)",
+    )
+    p.add_argument(
+        "--optimizer", "-o", type=str, choices=['gradient_descent', 'nesterov'], default='gradient_descent',
+        help="Optimizer to use for training (default: gradient_descent)"
     )
     return p.parse_args()
 
@@ -122,10 +126,11 @@ def main() -> None:
     neural_network = NeuralNetwork(
         X_train, y_train,
         X_val, y_val,
-        n_hidden=args.layer,
+        n_hidden=args.layers,
         learning_rate=args.learning_rate,
         epochs=args.epochs,
-        early_stopping=args.early_stopping
+        early_stopping=args.early_stopping,
+        optimizer=args.optimizer
     )
     parameters, training_history = neural_network.deep_neural_network()
 
@@ -133,13 +138,15 @@ def main() -> None:
     model_data = {
         'parameters': parameters,
         'training_history': training_history,
-        'architecture': args.layer,
+        'architecture': args.layers,
         'learning_rate': args.learning_rate,
-        'epochs': args.epochs
+        'epochs': args.epochs,
+        'optimizer': args.optimizer,
     }
-    os.makedirs("trained_model", exist_ok=True)
-    np.save("trained_model/trained_model.npy", model_data)
-    print("Model saved to 'trained_model/trained_model.npy'")
+
+    os.makedirs(os.path.dirname(args.model), exist_ok=True)
+    np.save(args.model, model_data)
+    print(f"Model saved to '{args.model}'")
 
     # Final evaluation
     preds = Predict(X_val, parameters).predict()

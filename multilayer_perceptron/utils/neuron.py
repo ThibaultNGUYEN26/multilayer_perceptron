@@ -126,7 +126,7 @@ class Gradients:
 
 
 class Update:
-    def __init__(self, gradients, parameters, learning_rate) -> None:
+    def __init__(self, gradients, parameters, learning_rate, velocity=None) -> None:
         """
         Initialize the Update class with gradients, parameters, and learning rate.
 
@@ -138,8 +138,9 @@ class Update:
         self.gradients = gradients
         self.parameters = parameters
         self.learning_rate = learning_rate
+        self.velocity = velocity if velocity is not None else {}
 
-    def update(self) -> dict:
+    def gradient_descent(self) -> dict:
         """
         Updates the parameters of the neural network using the computed gradients.
 
@@ -155,6 +156,45 @@ class Update:
             self.parameters['b' + str(c)] = self.parameters['b' + str(c)] - self.learning_rate * self.gradients['db' + str(c)]
 
         return self.parameters
+
+
+    def nesterov_acceleration_gradient(self, momentum=0.9) -> tuple:
+        """
+        Updates the parameters using Nesterov accelerated gradient descent.
+
+        Args:
+            momentum (float): Momentum factor for Nesterov acceleration (default: 0.9).
+
+        Returns:
+            tuple: (updated_parameters, updated_velocity, look_ahead_parameters)
+        """
+        C = len(self.parameters) // 2
+
+        # Initialize velocity if not exists or if it's empty
+        if not hasattr(self, 'velocity') or not self.velocity:
+            self.velocity = {}
+            for c in range(1, C + 1):
+                self.velocity['vW' + str(c)] = np.zeros_like(self.parameters['W' + str(c)])
+                self.velocity['vb' + str(c)] = np.zeros_like(self.parameters['b' + str(c)])
+
+        # Store the current parameters for look-ahead computation
+        look_ahead_params = {}
+
+        # Loop through each layer to update weights and biases with Nesterov acceleration
+        for c in range(1, C + 1):
+            # Update velocity
+            self.velocity['vW' + str(c)] = momentum * self.velocity['vW' + str(c)] + self.learning_rate * self.gradients['dW' + str(c)]
+            self.velocity['vb' + str(c)] = momentum * self.velocity['vb' + str(c)] + self.learning_rate * self.gradients['db' + str(c)]
+
+            # Update parameters
+            self.parameters['W' + str(c)] -= self.velocity['vW' + str(c)]
+            self.parameters['b' + str(c)] -= self.velocity['vb' + str(c)]
+
+            # Compute look-ahead parameters for next iteration
+            look_ahead_params['W' + str(c)] = self.parameters['W' + str(c)] - momentum * self.velocity['vW' + str(c)]
+            look_ahead_params['b' + str(c)] = self.parameters['b' + str(c)] - momentum * self.velocity['vb' + str(c)]
+
+        return self.parameters, self.velocity, look_ahead_params
 
 
 class Predict:

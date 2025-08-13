@@ -436,8 +436,8 @@ def get_args():
     parser.add_argument(
         "--model", "-m",
         type=str,
-        default="trained_model/trained_model.npy",
-        help="Path to trained model file (default: trained_model/trained_model.npy)"
+        default="trained_model/gradient_descent.npy",
+        help="Path to trained model file (default: trained_model/gradient_descent.npy)"
     )
     parser.add_argument(
         "--verbose", "-v",
