@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .neuron import Initialisation, Model, Gradients, Update, Predict
 from utils.plot import TrainValidationPlot
@@ -22,7 +23,7 @@ def categorical_cross_entropy_loss(y_true, y_pred) -> float:
 
 class NeuralNetwork:
 
-    def __init__(self, X_train, y_train, X_val, y_val, n_hidden, learning_rate, epochs, early_stopping=0, optimizer='gradient_descent') -> None:
+    def __init__(self, X_train, y_train, X_val, y_val, n_hidden, learning_rate, epochs, early_stopping=0, optimizer='gradient_descent', visualizer=None) -> None:
         """
         Initialize the neural network with training and validation data, hidden layer sizes,
         learning rate, number of epochs, and early stopping patience.
@@ -36,6 +37,8 @@ class NeuralNetwork:
             learning_rate (float): Learning rate for parameter updates.
             epochs (int): Number of training epochs.
             early_stopping_patience (int): Number of epochs to wait for improvement before stopping (0 = disabled).
+            optimizer (str): Optimizer to use ('gradient_descent' or 'nesterov').
+            visualizer (NeuralNetworkVisualizer, optional): Visualizer for real-time training progress.
         """
         self.X_train     = X_train
         self.y_train     = y_train
@@ -46,6 +49,7 @@ class NeuralNetwork:
         self.epochs      = epochs
         self.early_stopping = early_stopping
         self.optimizer = optimizer
+        self.visualizer = visualizer
 
     def accuracy_score(self, y_true, y_pred) -> float:
         """
@@ -150,6 +154,23 @@ class NeuralNetwork:
             # Store metrics in training history
             training_history.append([train_loss, train_acc, val_loss, val_acc])
 
+            if self.visualizer:
+                # Get activations for a single sample for visualization
+                sample_idx = np.random.randint(0, self.X_train.shape[1])
+                sample_input = self.X_train[:, sample_idx:sample_idx+1]
+
+                # Get activations for visualization
+                vis_activations = Model(sample_input, parameters).forward_propagation()
+                # Add input layer to activations
+                vis_activations['A0'] = sample_input
+
+                self.visualizer.update_visualization(i + 1, vis_activations, parameters, train_loss, val_loss, train_acc, val_acc)
+
+                # Check if plot window is closed
+                if not plt.get_fignums():
+                    print("🛑 Visualization window closed. Stopping training.")
+                    break
+
             # Display metrics at each epoch as required
             print(f"Epoch {i+1:3d}/{self.epochs}: "
                   f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, "
@@ -158,7 +179,8 @@ class NeuralNetwork:
         # Convert training history to numpy array
         training_history = np.array(training_history)
 
-        # plot training and validation accuracy and loss
-        TrainValidationPlot(training_history).plot()
+        # If visualizer is not used, plot training and validation accuracy and loss
+        if not self.visualizer:
+            TrainValidationPlot(training_history).plot()
 
         return parameters, training_history

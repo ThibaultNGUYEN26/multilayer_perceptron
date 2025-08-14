@@ -3,10 +3,12 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from utils.data_loader import load_data
 from utils.neural_network import NeuralNetwork
 from utils.neuron import Predict
+from utils.neural_network_visualizer import NeuralNetworkVisualizer
 
 
 def to_one_hot(y, num_classes=2) -> np.ndarray:
@@ -81,6 +83,10 @@ def get_args() -> argparse.Namespace:
         "--optimizer", "-o", type=str, choices=['gradient_descent', 'nesterov'], default='gradient_descent',
         help="Optimizer to use for training (default: gradient_descent)"
     )
+    p.add_argument(
+        "--visualize", "-v", action='store_true',
+        help="Enable real-time visualization of training progress"
+    )
     return p.parse_args()
 
 
@@ -122,6 +128,12 @@ def main() -> None:
     # Scale
     X_train, X_val = standardize_features(X_train_raw, X_val_raw)
 
+    # Initialize visualizer if requested
+    visualizer = None
+    if args.visualize:
+        layer_sizes = [X_train.shape[0]] + args.layers + [y_train.shape[0]]
+        visualizer = NeuralNetworkVisualizer(layer_sizes, activation_threshold=0.55).show()
+
     # Train
     neural_network = NeuralNetwork(
         X_train, y_train,
@@ -130,7 +142,8 @@ def main() -> None:
         learning_rate=args.learning_rate,
         epochs=args.epochs,
         early_stopping=args.early_stopping,
-        optimizer=args.optimizer
+        optimizer=args.optimizer,
+        visualizer=visualizer
     )
     parameters, training_history = neural_network.deep_neural_network()
 
@@ -154,5 +167,8 @@ def main() -> None:
     acc = np.mean(preds.flatten() == y_val_class)
     print(f"\nFinal validation accuracy: {acc:.3f}")
 
+    if visualizer:
+        while plt.get_fignums():
+            plt.pause(0.5)
 if __name__ == "__main__":
     main()
