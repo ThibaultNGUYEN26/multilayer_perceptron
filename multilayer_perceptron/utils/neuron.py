@@ -147,7 +147,7 @@ class Update:
         Returns:
             dict: Updated parameters of the neural network.
         """
-        # Update the parameters using the gradients and learning rate
+        # Update the parameters using tpython train.py -l 256 128 64 32 -lr 0.03 -e 4000he gradients and learning rate
         C = len(self.parameters) // 2
 
         # Loop through each layer to update weights and biases

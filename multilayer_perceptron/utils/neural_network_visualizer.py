@@ -82,8 +82,7 @@ class NeuralNetworkVisualizer:
         layer_names = ['Input'] + [f'Hidden {i+1}' for i in range(L - 2)] + ['Output']
         for i, name in enumerate(layer_names):
             x_label = i * layer_spacing
-            ax.text(x_label, max_neurons * neuron_spacing + neuron_spacing * 0.05, name,
-                    ha='center', va='bottom', fontweight='bold', fontsize=10)
+            ax.text(x_label, max_neurons * neuron_spacing + neuron_spacing * 0.05, name, ha='center', va='bottom', fontweight='bold', fontsize=10)
 
         # storage
         self.neuron_positions = []
@@ -109,18 +108,15 @@ class NeuralNetworkVisualizer:
                 y = y_start + j * neuron_spacing
 
                 # base (always opaque to hide lines), below overlay & ring
-                base = patches.Circle((x, y), disc_r, facecolor=ax_bg,
-                                    edgecolor='none', zorder=3)
+                base = patches.Circle((x, y), disc_r, facecolor=ax_bg, edgecolor='none', zorder=3)
                 ax.add_patch(base)
 
                 # activation overlay (colored only when active)
-                disc = patches.Circle((x, y), disc_r, facecolor='none',
-                                    edgecolor='none', zorder=4)
+                disc = patches.Circle((x, y), disc_r, facecolor='none', edgecolor='none', zorder=4)
                 ax.add_patch(disc)
 
                 # top outline ring
-                ring = patches.Circle((x, y), ring_r, facecolor='none',
-                                    edgecolor='black', linewidth=1.6, zorder=5)
+                ring = patches.Circle((x, y), ring_r, facecolor='none', edgecolor='black', linewidth=1.6, zorder=5)
                 ax.add_patch(ring)
 
                 layer_positions.append((x, y))
@@ -142,8 +138,7 @@ class NeuralNetworkVisualizer:
             for i, (x1, y1) in enumerate(src_positions):
                 neuron_lines = []
                 for j, (x2, y2) in enumerate(dst_positions):
-                    line = ax.plot([x1, x2], [y1, y2],
-                                color='black', alpha=0.12, linewidth=0.45, zorder=1)[0]
+                    line = ax.plot([x1, x2], [y1, y2], color='black', alpha=0.12, linewidth=0.45, zorder=1)[0]
                     neuron_lines.append(line)
                 lines_this_layer.append(neuron_lines)
 
@@ -241,8 +236,7 @@ class NeuralNetworkVisualizer:
                 base.set_zorder(3)
 
             # activation mask
-            a = (activations.get('A0') if layer_idx == 0
-                else activations.get(f'A{layer_idx}', np.zeros(self.layer_sizes[layer_idx])))
+            a = (activations.get('A0') if layer_idx == 0 else activations.get(f'A{layer_idx}', np.zeros(self.layer_sizes[layer_idx])))
             if a is None:
                 a = np.zeros(self.layer_sizes[layer_idx])
 
@@ -285,19 +279,23 @@ class NeuralNetworkVisualizer:
             parameters (dict): Current weights and biases of the neural network.
             activations (dict): Current activations from forward propagation.
         """
+        # Ensure all lines are reset to default state
         for layer_idx in range(len(self.weight_lines)):
             W_key = f'W{layer_idx + 1}'
+            # Check if the weight matrix exists in parameters
             if W_key not in parameters:
                 continue
             W = parameters[W_key]  # shape: (n_dst, n_src)
             if W.size == 0:
                 continue
 
+            # Reset all lines to default state
             src_active, src_norm = self._active_mask(layer_idx, activations)
             dst_active, dst_norm = self._active_mask(layer_idx + 1, activations)
 
             max_abs = np.max(np.abs(W)) + 1e-12
 
+            # Iterate through all lines in this layer
             for src_i in range(len(self.weight_lines[layer_idx])):
                 for dst_j in range(len(self.weight_lines[layer_idx][src_i])):
                     line = self.weight_lines[layer_idx][src_i][dst_j]
@@ -306,7 +304,7 @@ class NeuralNetworkVisualizer:
                     if dst_j >= W.shape[0] or src_i >= W.shape[1]:
                         line.set_color('black'); line.set_alpha(0.12); line.set_linewidth(0.45)
                         continue
-
+                    # Set default state
                     if src_active.size and dst_active.size and src_active[src_i] and dst_active[dst_j]:
                         w = W[dst_j, src_i]  # note: (dst, src)
                         strength = (abs(w) / max_abs) * float(src_norm[src_i] * dst_norm[dst_j])
@@ -348,10 +346,7 @@ class NeuralNetworkVisualizer:
             all_losses = self.train_losses + self.val_losses
             all_accs = self.train_accs + self.val_accs
             if all_losses and all_accs:
-                self.ax_metrics.set_ylim(
-                    min(min(all_losses), min(all_accs)) - 0.1,
-                    max(max(all_losses), max(all_accs)) + 0.1
-                )
+                self.ax_metrics.set_ylim(min(min(all_losses), min(all_accs)) - 0.1, max(max(all_losses), max(all_accs)) + 0.1)
 
 
     def update_visualization(self, epoch, activations, parameters, train_loss, val_loss, train_acc, val_acc) -> None:
