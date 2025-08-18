@@ -35,25 +35,31 @@ def to_one_hot(y, num_classes=2) -> np.ndarray:
     return one_hot
 
 
-def standardize_features(X_train, X_test) -> tuple:
+def standardize_features(X_train, X_val) -> tuple:
     """
     Standardize features by subtracting mean and dividing by standard deviation.
-    Uses training data statistics to transform both training and test data.
+    Uses training data statistics to transform both training and validation data.
 
     Args:
         X_train (np.ndarray): Training features of shape (n_features, n_samples)
-        X_test (np.ndarray): Test features of shape (n_features, n_samples)
+        X_val (np.ndarray): Validation features of shape (n_features, n_samples)
 
     Returns:
-        tuple: (standardized_X_train, standardized_X_test)
+        tuple: (standardized_X_train, standardized_X_val)
     """
     mean = np.mean(X_train, axis=1, keepdims=True)
     std = np.std(X_train, axis=1, keepdims=True)
     std = np.where(std == 0, 1, std)
-    return (X_train - mean) / std, (X_test - mean) / std
+    return (X_train - mean) / std, (X_val - mean) / std
 
 
 def get_args() -> argparse.Namespace:
+    """
+    Parse command line arguments for training a neural network.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments.
+    """
     p = argparse.ArgumentParser()
     p.add_argument(
         "--data-dir", "-d", type=str, default="data",

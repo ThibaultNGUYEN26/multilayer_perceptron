@@ -4,12 +4,15 @@ import argparse
 import os
 from utils.plot import ModelComparisonPlot
 
-def load_model_data(model_path):
+def load_model_data(model_path) -> dict:
     """
     Load model data from .npy file.
 
     Args:
         model_path (str): Path to the model file.
+
+    Returns:
+        dict: Loaded model data.
     """
     try:
         data = np.load(model_path, allow_pickle=True).item()
@@ -75,7 +78,13 @@ def print_model_summary(model1_data, model2_data, model1_name, model2_name) -> N
     else:
         print(f"  Both models have the same validation loss")
 
-def get_args():
+def get_args() -> argparse.Namespace:
+    """
+    Parse command line arguments for model comparison.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments.
+    """
     parser = argparse.ArgumentParser(description='Compare learning curves from two models')
     parser.add_argument(
         'model1', type=str,

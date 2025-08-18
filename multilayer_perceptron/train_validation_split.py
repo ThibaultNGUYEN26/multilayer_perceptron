@@ -10,6 +10,9 @@ from utils.plot import TrainValidationDistributionPlot
 def get_args() -> argparse.Namespace:
     """
     Parse command line arguments for train/validation split.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments.
     """
     p = argparse.ArgumentParser(description="Split dataset into training and validation sets")
     p.add_argument(

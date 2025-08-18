@@ -380,6 +380,9 @@ class NeuralNetworkVisualizer:
     def show(self) -> 'NeuralNetworkVisualizer':
         """
         Show the visualization.
+
+        Returns:
+            NeuralNetworkVisualizer: Self for method chaining.
         """
         plt.show(block=False)  # Non-blocking show
         self.fig.canvas.draw()

@@ -120,7 +120,8 @@ class Gradients:
             gradients['dW' + str(c)] = 1 / m * np.dot(dZ, self.activations['A' + str(c - 1)].T)
             gradients['db' + str(c)] = 1 / m * np.sum(dZ, axis=1, keepdims=True)
             if c > 1:
-                dZ = np.dot(self.parameters['W' + str(c)].T, dZ) * self.activations['A' + str(c - 1)] * (1 - self.activations['A' + str(c - 1)])
+                derivated_sigmoid = self.activations['A' + str(c - 1)] * (1 - self.activations['A' + str(c - 1)])
+                dZ = np.dot(self.parameters['W' + str(c)].T, dZ) * derivated_sigmoid
 
         return gradients
 
@@ -147,7 +148,6 @@ class Update:
         Returns:
             dict: Updated parameters of the neural network.
         """
-        # Update the parameters using tpython train.py -l 256 128 64 32 -lr 0.03 -e 4000he gradients and learning rate
         C = len(self.parameters) // 2
 
         # Loop through each layer to update weights and biases

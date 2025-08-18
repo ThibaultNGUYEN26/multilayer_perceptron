@@ -12,8 +12,16 @@ class Colors:
     EOC = '\033[0m'      # EOC to default color
     BOLD = '\033[1m'       # Bold text
 
-def calculate_convergence_metrics(history):
-    """Calculate convergence-related metrics."""
+def calculate_convergence_metrics(history) -> dict:
+    """
+    Calculate convergence-related metrics.
+
+    Args:
+        history (np.ndarray): Training history with columns [train_loss, train_acc, val_loss, val_acc]
+
+    Returns:
+        dict: A dictionary containing convergence metrics.
+    """
     val_loss = history[:, 2]
     train_loss = history[:, 0]
     val_acc = history[:, 3]
@@ -36,8 +44,17 @@ def calculate_convergence_metrics(history):
 
     return metrics
 
-def count_plateau_epochs(values, threshold=0.001):
-    """Count epochs where improvement is below threshold."""
+def count_plateau_epochs(values, threshold=0.001) -> int:
+    """
+    Count epochs where improvement is below threshold.
+
+    Args:
+        values (np.ndarray): Array of metric values (e.g., loss or accuracy).
+        threshold (float): Improvement threshold to consider as plateau (default: 0.001).
+
+    Returns:
+        int: Number of epochs where improvement is below the threshold.
+    """
     if len(values) < 2:
         return 0
 
@@ -47,8 +64,16 @@ def count_plateau_epochs(values, threshold=0.001):
             plateau_count += 1
     return plateau_count
 
-def calculate_overfitting_metrics(history):
-    """Calculate detailed overfitting metrics."""
+def calculate_overfitting_metrics(history) -> dict:
+    """
+    Calculate detailed overfitting metrics.
+
+    Args:
+        history (np.ndarray): Training history with columns [train_loss, train_acc, val_loss, val_acc]
+
+    Returns:
+        dict: A dictionary containing overfitting metrics.
+    """
     train_acc = history[:, 1]
     val_acc = history[:, 3]
     train_loss = history[:, 0]
@@ -84,8 +109,16 @@ def calculate_overfitting_metrics(history):
 
     return metrics
 
-def calculate_learning_dynamics(history):
-    """Analyze learning dynamics and phases."""
+def calculate_learning_dynamics(history) -> dict:
+    """
+    Analyze learning dynamics and phases.
+
+    Args:
+        history (np.ndarray): Training history with columns [train_loss, train_acc, val_loss, val_acc]
+
+    Returns:
+        dict: A dictionary containing learning dynamics metrics.
+    """
     val_acc = history[:, 3]
     train_acc = history[:, 1]
     val_loss = history[:, 2]
@@ -127,8 +160,16 @@ def calculate_learning_dynamics(history):
 
     return metrics
 
-def calculate_performance_consistency(history):
-    """Calculate performance consistency metrics."""
+def calculate_performance_consistency(history) -> dict:
+    """
+    Calculate performance consistency metrics.
+
+    Args:
+        history (np.ndarray): Training history with columns [train_loss, train_acc, val_loss, val_acc]
+
+    Returns:
+        dict: A dictionary containing performance consistency metrics.
+    """
     val_acc = history[:, 3]
     val_loss = history[:, 2]
 
@@ -157,8 +198,18 @@ def calculate_performance_consistency(history):
 
     return metrics
 
-def analyze_training_history(model_path, verbose=False):
-    """Analyze and display comprehensive training history metrics."""
+def analyze_training_history(model_path, verbose=False) -> None:
+    """
+    Analyze and display comprehensive training history metrics.
+
+    Args:
+        model_path (str): Path to the trained model file.
+        verbose (bool): If True, display additional information.
+
+    Raises:
+        FileNotFoundError: If the model file does not exist.
+        Exception: If there is an error loading the model data.
+    """
 
     # Load model and extract training history
     try:
@@ -431,7 +482,13 @@ def analyze_training_history(model_path, verbose=False):
 
     print(f"\n" + "="*80)
 
-def get_args():
+def get_args() -> argparse.Namespace:
+    """
+    Parse command line arguments for training history analysis.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments.
+    """
     parser = argparse.ArgumentParser(description="Analyze training history")
     parser.add_argument(
         "--model", "-m",
